@@ -9,24 +9,40 @@ import Particles from "react-tsparticles";
 import { ParticlesConfig } from './assests/Particles';
 
 
-const particlesInit = (main) => {
-  console.log(main);
-  // you can initialize the tsParticles instance (main) here, adding custom shapes or presets
-};
-
-const particlesLoaded = (container) => {
-  console.log(container);
-};
-
 class App extends Component {
   constructor() {
     super()
     this.state = {
       input: '',
-      imageUrl: ''
+      imageUrl: '',
+      box: {}
     }
   }
 
+
+  calculateFaceLocation= (data) =>{
+
+     //from the .outputs represents the path to the object value that we are interested in which is the bounding box that surrounds the face in the pictures
+    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
+    const image = document.getElementById('inputImage');
+    
+    //converts the dimensionsof the pictures from pixels to regular numbers
+    const width = Number(image.width); 
+    const height = Number(image.height);
+    
+    return {
+      leftCol: clarifaiFace.left_col * width,
+      topRow: clarifaiFace.top_row * height,
+      rightCol: width - (clarifaiFace.right_col * width),
+      bottomRow: height - (clarifaiFace.bottom_row * height)
+    }
+  }
+
+  displayFaceBox= (box) => {
+    console.log(box)
+    this.setState({box: box})
+  }
+  
   onInputChange = (event) => {
     console.log(event.target.value)
     this.setState({input: event.target.value})
@@ -70,8 +86,7 @@ class App extends Component {
       //the API call to Clarifai that does the predicting for the app
       fetch("https://api.clarifai.com/v2/models/face-detection/outputs", requestOptions)
       .then(response => response.text())
-      .then(result => console.log(JSON.parse(result).outputs[0].data.regions[0].region_info.bounding_box)) 
-      //from the .outputs represents the path to the object value that we are interested in
+      .then(result => this.displayFaceBox(this.calculateFaceLocation(JSON.parse(result)))) 
       .catch(error => console.log('error', error));
   }
   //regions[0].region_info.bounding_box
@@ -80,12 +95,7 @@ class App extends Component {
   render() {
     return (
       <div className='App'>
-        <Particles className='particles' 
-        id="tsparticles"
-        init={particlesInit}
-        loaded={particlesLoaded}
-        options={ParticlesConfig}/>
-  
+        <Particles className='particles' id="tsparticles" options={ParticlesConfig}/>
         <Navigation />
         <Logo />
         <Rank />
@@ -93,7 +103,7 @@ class App extends Component {
           onInputChange={this.onInputChange} 
           onButtonSubmit={this.onButtonSubmit}
         />
-        <FacialRecognition imageUrl={this.state.imageUrl}/>
+        <FacialRecognition box={this.state.box} imageUrl={this.state.imageUrl}/>
       </div>
     );
   }
