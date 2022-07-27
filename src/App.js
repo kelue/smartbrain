@@ -10,6 +10,9 @@ import FacialRecognition from './components/FacialRecognition/FacialRecognition'
 import Particles from "react-tsparticles";
 import { ParticlesConfig } from './assests/Particles';
 
+const KEY = '4d6a22fc42294ca89a144005005b3b4a';
+const USER_ID = process.env.REACT_APP_CLARIFAI_USER_ID;
+const APP_ID = process.env.REACT_APP_CLARIFAI_APP_ID;
 
 class App extends Component {
   constructor() {
@@ -19,10 +22,26 @@ class App extends Component {
       imageUrl: '',
       box: {},
       route: 'signIn',
-      isSignedIn: false
+      isSignedIn: false,
+      user: {
+        id: '',
+        name: '',
+        email: '',
+        entries: 0,
+        joined: ''
+      }
     }
   }
 
+  loadUser = (data) => {
+    this.setState({user:{
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      entries: data.entries,
+      joined: data.joined
+    }})
+  }
 
   calculateFaceLocation= (data) =>{
 
@@ -71,8 +90,8 @@ class App extends Component {
     };
 
     //Assigning enviromental variables for user and app id to the message body
-    raw.user_app_id.user_id = process.env.REACT_APP_CLARIFAI_USER_ID;
-    raw.user_app_id.app_id = process.env.REACT_APP_CLARIFAI_APP_ID;
+    raw.user_app_id.user_id = USER_ID;
+    raw.user_app_id.app_id = APP_ID;
   
     raw.inputs[0].data.image.url = this.state.input; //updates the JSON object with the state of the inbox input
     
@@ -80,17 +99,20 @@ class App extends Component {
       method: 'POST',
       headers: {
         Accept: 'application/json',
-        Authorization: `Key 4d6a22fc42294ca89a144005005b3b4a`
+        Authorization: 'Key ' + KEY
       },
       body: JSON.stringify(raw)
     };
+
+
 
       this.setState({imageUrl: this.state.input})
 
       //the API call to Clarifai that does the predicting for the app
       fetch("https://api.clarifai.com/v2/models/face-detection/outputs", requestOptions)
-      .then(response => response.text())
-      .then(result => this.displayFaceBox(this.calculateFaceLocation(JSON.parse(result)))) 
+      .then(response => response.json())
+      // .then(result => console.log(result.outputs[0].data))
+      .then(result => this.displayFaceBox(this.calculateFaceLocation(result))) 
       .catch(error => console.log('error', error));
   }
   //regions[0].region_info.bounding_box
@@ -103,6 +125,8 @@ class App extends Component {
     }
     this.setState({route: route})
   }
+
+  
   
 
   render() {
@@ -120,7 +144,7 @@ class App extends Component {
           </div>
         : ( route === 'signIn'
             ? <SignIn onRouteChange={this.onRouteChange}/>
-            : <Register onRouteChange={this.onRouteChange}/>
+            : <Register loadUser={this.loadUser} onRouteChange={this.onRouteChange}/>
         )
           }
       </div>
